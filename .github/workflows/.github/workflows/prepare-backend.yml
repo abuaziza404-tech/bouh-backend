@@ -1,0 +1,67 @@
+name: Prepare BOUH Backend
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Extract backend
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import shutil
+          import zipfile
+
+          archives = list(
+              Path(".").glob("BOUH-78.0.0-Unified-Source*.zip")
+          )
+          if len(archives) != 1:
+              raise RuntimeError("Expected exactly one BOUH source ZIP")
+
+          destination = Path("/tmp/bouh-release")
+          with zipfile.ZipFile(archives[0]) as archive:
+              archive.extractall(destination)
+
+          source = destination / "BOUH-78.0"
+          names = [
+              "Dockerfile",
+              "requirements.txt",
+              "render.yaml",
+              "coverage-areas.geojson",
+              "terrain_api.py",
+              "engine",
+              "server",
+              "acquisition",
+              "bouh"
+          ]
+
+          for name in names:
+              item = source / name
+              if item.is_dir():
+                  shutil.copytree(item, name, dirs_exist_ok=True)
+              else:
+                  shutil.copy2(item, name)
+          PY
+
+      - name: Save backend files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Dockerfile requirements.txt render.yaml
+          git add coverage-areas.geojson terrain_api.py
+          git add engine server acquisition bouh
+          if ! git diff --cached --quiet; then
+            git commit -m "Prepare BOUH backend for Render"
+            git push
+          fi
