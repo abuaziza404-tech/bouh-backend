@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: bouh-unified-78
+    runtime: docker
+    plan: free
+    healthCheckPath: /healthz
+    envVars:
+      - key: BOUH_API_TOKEN
+        generateValue: true
+      - key: CACHE_DIR
+        value: /tmp/bouh-engine
+      - key: JOB_TIMEOUT_SECONDS
+        value: 600
+      - key: CORS_ORIGINS
+        value: "null"
+      - key: BOUH_CORS_ORIGINS
+        value: "null"
+      - key: BOUH_DATA_DIR
+        value: /tmp/bouh-jobs
+      - key: BOUH_PROCESSOR
+        value: coverage
