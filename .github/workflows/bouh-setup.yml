@@ -1,0 +1,39 @@
+name: BOUH Setup
+on:
+  push:
+    paths: [".github/workflows/bouh-setup.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Prepare server
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import shutil, zipfile
+          files = list(Path(".").glob("BOUH-78.0.0-Unified-Source*.zip"))
+          assert len(files) == 1, "Expected one BOUH source ZIP"
+          with zipfile.ZipFile(files[0]) as z:
+              z.extractall("/tmp/bouh")
+          root = Path("/tmp/bouh/BOUH-78.0")
+          for name in ["Dockerfile","requirements.txt","render.yaml","coverage-areas.geojson","terrain_api.py","engine","server","acquisition","bouh"]:
+              p = root / name
+              if p.is_dir():
+                  shutil.copytree(p, name, dirs_exist_ok=True)
+              else:
+                  shutil.copy2(p, name)
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Dockerfile requirements.txt render.yaml coverage-areas.geojson terrain_api.py engine server acquisition bouh
+          if ! git diff --cached --quiet; then
+            git commit -m "Prepare BOUH backend"
+            git push
+          fi
