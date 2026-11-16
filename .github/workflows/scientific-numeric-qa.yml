@@ -1,0 +1,26 @@
+name: Verify BOUH numerical contracts (synthetic data only)
+on:
+  push:
+    branches:
+      - qa/bouh-numerical-contracts-20261116
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: bouh-numeric-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  numeric-contracts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Setup isolated Python environment
+        shell: bash
+        run: |
+          python3 -m venv .venv
+          .venv/bin/python -m pip install --disable-pip-version-check 'numpy>=1.24,<3'
+      - name: Compile source and test modules
+        run: .venv/bin/python -m compileall -q acquisition bouh tests
+      - name: Run science contract tests
+        run: .venv/bin/python -m unittest discover -v -s tests -p 'test_scientific_indices.py'
